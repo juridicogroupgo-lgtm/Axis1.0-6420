@@ -7,6 +7,7 @@ import { storesRoutes } from "./routes/stores";
 import { proposalsRoutes, proposalsPublicRoutes } from "./routes/proposals";
 import { dashboardRoutes } from "./routes/dashboard";
 import { reportsRoutes } from "./routes/reports";
+import { credspotRoutes } from "./routes/credspot";
 
 const app = new Hono()
   .use("*", cors({ origin: "*", allowHeaders: ["Authorization", "Content-Type"] }))
@@ -20,7 +21,8 @@ const app = new Hono()
   .route("/stores", storesRoutes)
   .route("/proposals", proposalsRoutes)
   .route("/dashboard", dashboardRoutes)
-  .route("/reports", reportsRoutes);
+  .route("/reports", reportsRoutes)
+  .route("/credspot", credspotRoutes);
 
 export type AppType = typeof app;
 export default app;

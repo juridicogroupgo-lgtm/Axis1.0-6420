@@ -122,6 +122,8 @@ export default function PropostaDetalhePage() {
   const [savingBanc, setSavingBanc] = useState(false);
   const [bancError, setBancError] = useState<string | null>(null);
   const [bancSuccess, setBancSuccess] = useState(false);
+  const [goFinanceira, setGoFinanceira] = useState<any>(null);
+  const [selectingOfferId, setSelectingOfferId] = useState<string | null>(null);
 
   function bf(key: string, value: string) {
     setBancForm(prev => ({ ...prev, [key]: value }));
@@ -166,6 +168,17 @@ export default function PropostaDetalhePage() {
     }
   }
 
+  async function fetchGoFinanceira() {
+    if (!id) return;
+    try {
+      const res = await api.get(`/credspot/proposals/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setGoFinanceira(data.goFinanceira ?? null);
+      }
+    } catch {}
+  }
+
   async function fetchProposta() {
     if (!id) return;
     try {
@@ -185,7 +198,7 @@ export default function PropostaDetalhePage() {
     }
   }
 
-  useEffect(() => { fetchProposta(); }, [id]);
+  useEffect(() => { fetchProposta(); fetchGoFinanceira(); }, [id]);
 
   useEffect(() => {
     if (!proposta) return;
@@ -206,6 +219,15 @@ export default function PropostaDetalhePage() {
     }, 5000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [proposta?.statusPadronizado, proposta?.status, id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const es = new EventSource(`/api/credspot/proposals/${id}/stream`);
+    es.addEventListener("update", async () => {
+      await fetchGoFinanceira();
+    });
+    return () => es.close();
+  }, [id]);
 
   // Pre-fill bank form from formData when modal opens
   function openBancModal() {
@@ -258,6 +280,18 @@ export default function PropostaDetalhePage() {
   const isTerminal = TERMINAL.has(currentStatus);
   const isCancelled = currentStatus === "CANCELADA";
   const hasBancPendency = isPendente(currentStatus) && isBancarioPendency(proposta.statusMotivo);
+  const gfOffers = Array.isArray(goFinanceira?.offers) ? goFinanceira.offers : [];
+
+  async function selectGoFinanceiraOffer(offerId: string) {
+    if (!id) return;
+    setSelectingOfferId(offerId);
+    try {
+      const res = await api.post(`/credspot/proposals/${id}/select`, { offerId });
+      if (res.ok) await fetchGoFinanceira();
+    } finally {
+      setSelectingOfferId(null);
+    }
+  }
 
   let customerPhone: string | undefined;
   try { if (proposta.formData) { const fd = JSON.parse(proposta.formData); customerPhone = fd.telefone ?? fd.phone ?? fd.customerPhone; } } catch { /**/ }
@@ -509,10 +543,69 @@ export default function PropostaDetalhePage() {
             {proposta.externalUuid ? <Row label="ID Externo" value={proposta.externalUuid.slice(0, 8) + "..."} /> : null}
           </InfoCard>
 
+          {goFinanceira?.contract ? (
+            <InfoCard title="Go Financeira - Contrato">
+              <Row label="Status" value={goFinanceira.contract.status ?? "—"} />
+              <Row label="Número" value={goFinanceira.contract.contractNumber ?? "—"} />
+              {goFinanceira.contract.signatureUrl ? <Row label="Assinatura" value="Disponível" /> : null}
+            </InfoCard>
+          ) : goFinanceira?.consent ? (
+            <InfoCard title="Go Financeira - Contrato">
+              <Row label="Status" value="Aguardando criação" />
+              <Row label="Consentimento" value={goFinanceira.consent.accepted ? "Aceito" : "Processando"} />
+            </InfoCard>
+          ) : null}
+
           <InfoCard title="Informações">
             <Row label="Criada em" value={formatDate(proposta.createdAt)} />
             <Row label="Atualizada em" value={formatDate(proposta.updatedAt)} />
           </InfoCard>
+
+          {goFinanceira ? (
+            <InfoCard title="Go Financeira">
+              <Row label="Status" value={goFinanceira.consent?.accepted ? "Consentimento aceito" : "Processando"} />
+              {goFinanceira.margin?.availableMarginValue != null ? (
+                <Row label="Margem disponível" value={formatCurrency(goFinanceira.margin.availableMarginValue)} />
+              ) : null}
+              {gfOffers.length > 0 ? (
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {gfOffers.slice(0, 3).map((o: any, idx: number) => (
+                    <div key={o.id ?? idx} style={{ padding: "10px 12px", borderRadius: 8, background: "#0F172A", border: "1px solid #27272A" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "start" }}>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "#FAFAFA" }}>
+                            {formatCurrency(o.amount ?? o.valor ?? 0)}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#A1A1AA", marginTop: 4 }}>
+                            {o.installments ?? o.parcelas ?? "—"}x • {o.cet ?? "—"} CET • {o.tableName ?? "—"}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => selectGoFinanceiraOffer(o.id)}
+                          disabled={selectingOfferId === o.id}
+                          style={{
+                            background: o.selected ? "#22C55E" : "#7C3AED",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "6px 10px",
+                            fontSize: 11,
+                            cursor: "pointer",
+                            opacity: selectingOfferId === o.id ? 0.7 : 1,
+                          }}
+                        >
+                          {o.selected ? "Selecionada" : selectingOfferId === o.id ? "Salvando..." : "Selecionar"}
+                        </button>
+                      </div>
+                      <div style={{ fontSize: 11, color: "#60A5FA", marginTop: 6 }}>
+                        Go Financeira
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </InfoCard>
+          ) : null}
 
           {proposta.signatureUrl ? (
             <InfoCard title="Link de Formalização">

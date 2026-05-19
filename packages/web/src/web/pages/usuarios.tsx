@@ -148,6 +148,18 @@ export default function UsuariosPage() {
     } catch {}
   };
 
+  const handleDeleteUser = async (u: User) => {
+    if (!confirm(`Excluir o usuário ${u.name}?`)) return;
+    try {
+      const res = await api.delete(`/users/${u.id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Erro ao excluir usuário");
+      fetchUsers();
+    } catch (e: any) {
+      setError(e?.message || "Erro ao excluir usuário");
+    }
+  };
+
   const filtered = users.filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -232,14 +244,22 @@ export default function UsuariosPage() {
                               Editar
                             </button>
                             {me?.role === "admin" && (
-                              <button
-                                onClick={() => handleToggleActive(u)}
-                                className={`text-xs hover:underline ${
-                                  u.active ? "text-red-500" : "text-green-600"
-                                }`}
-                              >
-                                {u.active ? "Desativar" : "Ativar"}
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => handleToggleActive(u)}
+                                  className={`text-xs hover:underline ${
+                                    u.active ? "text-red-500" : "text-green-600"
+                                  }`}
+                                >
+                                  {u.active ? "Desativar" : "Ativar"}
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteUser(u)}
+                                  className="text-xs text-red-700 hover:underline"
+                                >
+                                  Excluir
+                                </button>
+                              </>
                             )}
                           </td>
                         )}
