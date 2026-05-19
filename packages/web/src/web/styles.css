@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #09090B;
+  --bg-secondary: #111113;
+  --bg-card: #18181B;
+  --bg-elevated: #1C1C1F;
+  --border: #27272A;
+  --border-subtle: #1F1F22;
+  --purple: #7C3AED;
+  --purple-accent: #8B5CF6;
+  --purple-glow: #A78BFA;
+  --purple-dim: #4C1D95;
+  --text-primary: #FAFAFA;
+  --text-secondary: #A1A1AA;
+  --text-muted: #52525B;
+  --green: #22C55E;
+  --red: #EF4444;
+  --yellow: #F59E0B;
+  --blue: #3B82F6;
+  --orange: #F97316;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #27272A; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3F3F46; }
+
+/* Pulse animation for realtime */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.pulse { animation: pulse-soft 2s ease-in-out infinite; }
+
+/* Flash on update */
+@keyframes flash-update {
+  0% { background-color: rgba(124, 58, 237, 0.3); }
+  100% { background-color: transparent; }
+}
+.flash { animation: flash-update 1s ease-out; }
+
+/* Fade in */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fade-in 0.2s ease-out forwards; }
+
+/* Glow */
+.glow-purple { box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); }
+.text-glow { text-shadow: 0 0 20px rgba(139, 92, 246, 0.8); }
+
+/* ===== RESPONSIVE GRID HELPERS ===== */
+
+/* 4-col stat grid → 2x2 on mobile */
+.grid-stats-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* 4-col status grid → 2x2 on mobile */
+.grid-status-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+/* 2-col grid → 1-col on mobile */
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+/* Form grid: 2-col → 1-col on mobile */
+.grid-form-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Table wrapper with horizontal scroll on mobile */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Action buttons on mobile — wrap */
+.actions-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .grid-stats-4 {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .grid-status-4 {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .grid-2col {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .grid-form-2 {
+    grid-template-columns: 1fr;
+  }
+}
