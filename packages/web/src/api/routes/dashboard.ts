@@ -40,7 +40,7 @@ export const dashboardRoutes = new Hono()
 
     const allProposals = await db.select().from(schema.proposals).where(await buildWhere(me));
 
-    const paid = allProposals.filter(p => p.status === "PAGA");
+    const paid = allProposals.filter(p => (p.statusPadronizado ?? p.status) === "PAGA");
     const paidToday = paid.filter(p => p.paidAt && p.paidAt >= todayStart);
     const paidMonth = paid.filter(p => p.paidAt && p.paidAt >= monthStart);
     const paidYear = paid.filter(p => p.paidAt && p.paidAt >= yearStart);

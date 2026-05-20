@@ -10,22 +10,18 @@ import {
 import { formatCurrency, formatCPF } from "../lib/utils";
 import { useAuth } from "../lib/auth-context";
 import { maskTableName } from "../../lib/maskTableName";
+import { bankDisplayName, isAllowedBankCode, isPixKeyAllowedForBank, normalizeBankCode } from "../lib/bank-allowed";
+import { BankAllowedSidebar } from "../components/bank-allowed-sidebar";
 
 type Step = "cpf" | "polling" | "manual" | "simulations" | "form" | "sending" | "done";
 
 const ESTADOS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
 const BANCOS: Record<string, string> = {
-  "001": "Banco do Brasil", "033": "Santander", "041": "Banrisul", "070": "BRB",
-  "077": "Inter", "084": "UniPrime", "085": "Cecred", "104": "Caixa Econômica Federal",
-  "133": "Cresol", "136": "Unicred", "197": "Stone", "208": "BTG Pactual",
-  "212": "Banco Original", "218": "BS2", "237": "Bradesco", "260": "Nu Pagamentos (Nubank)",
-  "290": "PagSeguro", "318": "BMG", "323": "MercadoPago", "336": "C6 Bank",
-  "341": "Itaú Unibanco", "380": "PicPay", "389": "Banco Mercantil do Brasil",
-  "422": "Banco Safra", "505": "Credit Suisse", "633": "Banco Rendimento",
-  "637": "Sofisa", "654": "Banco Digimais", "655": "Votorantim", "707": "Daycoval",
-  "735": "Neon", "739": "Banco Cetelem", "741": "Banco Ribeirão Preto",
-  "745": "Citibank", "748": "Sicredi", "756": "Bancoob/Sicoob",
+  "001": "Banco do Brasil", "041": "Banrisul", "237": "Bradesco", "104": "Caixa Econômica Federal",
+  "341": "Itaú", "033": "Santander", "756": "Sicoob", "748": "Sicredi",
+  "077": "Banco Inter", "336": "C6 Bank", "273": "Caixa Tem", "212": "iti",
+  "007": "Next", "260": "Nubank",
 };
 
 type TermEntry = {
@@ -268,6 +264,7 @@ export function NovaProposta() {
     nome: "", cpf_form: "", rg: "", rg_emissor: "", rg_uf: "", rg_data_emissao: "", data_nascimento: "",
     nome_mae: "", cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "",
     banco: "", agencia: "", agencia_digito: "", conta: "", conta_digito: "", tipo_conta: "corrente",
+    chave_pix: "", pix_tipo: "CPF",
     telefone: "", email: "",
     empresa: "", matricula: "", salario: "",
   });
@@ -431,6 +428,8 @@ export function NovaProposta() {
           bancario_conta: form.conta,
           bancario_conta_digito: form.conta_digito,
           bancario_conta_tipo: form.tipo_conta,
+          bancario_chave: form.chave_pix || undefined,
+          bancario_pix_tipo: form.chave_pix ? form.pix_tipo : undefined,
           // compat aliases
           banco: form.banco,
           agencia: form.agencia,
@@ -988,10 +987,15 @@ export function NovaProposta() {
                     </div>
                   </div>
                   <div style={{ gridColumn: "1 / -1" }}>
-                    <Input label="Banco (código Compe — ex: 341 para Itaú, 033 para Santander)" value={form.banco} onChange={e => f("banco", e.target.value)} placeholder="Ex: 341" required />
-                    {form.banco && (BANCOS[form.banco.padStart(3,"0")] ?? BANCOS[form.banco]) && (
-                      <div style={{ fontSize: 12, color: "#A78BFA", marginTop: 4 }}>
-                        ✓ {BANCOS[form.banco.padStart(3,"0")] ?? BANCOS[form.banco]}
+                    <Input label="Banco (apenas bancos aceitos)" value={form.banco} onChange={e => f("banco", e.target.value)} placeholder="Ex: 341" required />
+                    {form.banco && isAllowedBankCode(normalizeBankCode(form.banco)) && (
+                      <div style={{ fontSize: 12, color: "#22C55E", marginTop: 4 }}>
+                        ✓ {bankDisplayName(form.banco)}
+                      </div>
+                    )}
+                    {form.banco && !isAllowedBankCode(normalizeBankCode(form.banco)) && (
+                      <div style={{ fontSize: 12, color: "#EF4444", marginTop: 4 }}>
+                        Banco não permitido. Use apenas a lista autorizada.
                       </div>
                     )}
                   </div>
@@ -1001,6 +1005,19 @@ export function NovaProposta() {
                   <Input label="Dígito da Conta" value={form.conta_digito} onChange={e => f("conta_digito", e.target.value)} placeholder="Ex: 6" required />
                   <Select label="Tipo de Conta" value={form.tipo_conta} onChange={e => f("tipo_conta", (e.target as HTMLSelectElement).value)}
                     options={[{ value: "corrente", label: "Corrente" }, { value: "poupanca", label: "Poupança" }]} />
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <Input label="Chave PIX" value={form.chave_pix} onChange={e => f("chave_pix", e.target.value)} placeholder="CPF, e-mail, telefone ou chave aleatória" />
+                    {form.chave_pix && isPixKeyAllowedForBank(form.chave_pix, form.banco) && (
+                      <div style={{ fontSize: 12, color: "#22C55E", marginTop: 4 }}>
+                        ✓ Chave PIX vinculada a banco aceito
+                      </div>
+                    )}
+                    {form.chave_pix && !isPixKeyAllowedForBank(form.chave_pix, form.banco) && (
+                      <div style={{ fontSize: 12, color: "#EF4444", marginTop: 4 }}>
+                        A chave PIX precisa pertencer ao banco selecionado ou a outro banco autorizado.
+                      </div>
+                    )}
+                  </div>
 
                   <div style={{ gridColumn: "1 / -1", marginTop: 8 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#8B5CF6", marginBottom: 14, paddingBottom: 8, borderBottom: "1px solid #27272A" }}>
@@ -1283,6 +1300,9 @@ export function NovaProposta() {
             </div>
           </div>
         )}
+        <div style={{ flexShrink: 0, width: 220 }}>
+          <BankAllowedSidebar />
+        </div>
       </div>
     </Shell>
   );

@@ -662,9 +662,19 @@ export const proposalsRoutes = new Hono()
       const celular = (fd.celular ?? fd.telefone ?? "").replace(/\D/g, "");
       const agencia = String(fd.bancario_agencia ?? fd.agencia ?? "").replace(/\D/g, "").padStart(4, "0").slice(-4);
       const conta = String(fd.bancario_conta ?? fd.conta ?? "").replace(/\D/g, "");
+      const pixKey = String(fd.bancario_chave ?? fd.chave_pix ?? "").trim();
+      const pixTipo = String(fd.bancario_pix_tipo ?? fd.pix_tipo ?? "CPF");
       // Normalize conta tipo → GF expects "Corrente" or "Poupança"
       const rawTipoConta = fd.bancario_conta_tipo ?? fd.tipo_conta ?? "";
       const tipoConta = rawTipoConta.toLowerCase().includes("poupa") ? "Poupança" : "Corrente";
+      const allowedBanks = new Set(["001","041","237","104","341","033","756","748","077","336","273","212","007","260"]);
+      const bancoCodigo = String(fd.bancario_cod ?? fd.banco ?? "").replace(/\D/g, "").padStart(3, "0");
+      if (bancoCodigo && !allowedBanks.has(bancoCodigo)) {
+        return c.json({ message: "Banco não autorizado para pagamento." }, 400);
+      }
+      if (pixKey && !bancoCodigo) {
+        return c.json({ message: "Informe o banco autorizado para validar a chave PIX." }, 400);
+      }
 
       const gfPayload: Record<string, any> = {
         simulacao_id: simulacaoUuid,
@@ -695,6 +705,8 @@ export const proposalsRoutes = new Hono()
         bancario_agencia: agencia || null,
         bancario_conta: conta || null,
         bancario_conta_tipo: tipoConta,
+        bancario_chave: pixKey || null,
+        bancario_pix_tipo: pixKey ? pixTipo : null,
         bancario_titular_nome: fd.bancario_titular_nome ?? fd.nome ?? null,
         bancario_titular_cpf: fd.bancario_titular_cpf ?? fd.cpf ?? (term.cpf ?? "").replace(/\D/g, "") ?? null,
       };

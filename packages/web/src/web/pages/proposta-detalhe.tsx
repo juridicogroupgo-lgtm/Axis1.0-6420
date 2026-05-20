@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { Shell } from "../components/layout/shell";
+import { BankAllowedSidebar } from "../components/bank-allowed-sidebar";
 import { api } from "../lib/api";
 import { formatCurrency, formatDate, formatCPF, getStatusColor, getStatusBg } from "../lib/utils";
 
@@ -420,6 +421,9 @@ export default function PropostaDetalhePage() {
                         <option value="telefone">Telefone</option>
                         <option value="aleatoria">Chave aleatória</option>
                       </select>
+                      <div style={{ fontSize: 11, color: "#A1A1AA", marginTop: 4 }}>
+                        Confirme se essa chave PIX pertence a um banco autorizado.
+                      </div>
                     </div>
                   )}
                 </div>
@@ -442,7 +446,8 @@ export default function PropostaDetalhePage() {
         </div>
       )}
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "8px 0" }}>
+      <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
+        <div style={{ flex: 1, minWidth: 0, maxWidth: 860, margin: "0 auto", padding: "8px 0" }}>
 
         {/* Header */}
         <div style={{ marginBottom: 24 }}>

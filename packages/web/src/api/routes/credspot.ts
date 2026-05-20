@@ -86,8 +86,89 @@ export const credspotRoutes = new Hono()
   .post("/webhooks", async (c) => {
     const payload = await c.req.json();
     const eventType = payload?.eventType ?? payload?.type ?? "unknown";
+    const proposalId = payload?.proposalId ?? payload?.data?.proposalId ?? null;
+
     await db.insert(schema.credspotWebhooks).values({
-      id: generateId(), eventType, providerEventId: payload?.id ?? null, payload: JSON.stringify(payload), headers: JSON.stringify(Object.fromEntries(c.req.raw.headers.entries())),
+      id: generateId(),
+      eventType,
+      providerEventId: payload?.id ?? null,
+      proposalId,
+      payload: JSON.stringify(payload),
+      headers: JSON.stringify(Object.fromEntries(c.req.raw.headers.entries())),
     });
+
+    if (proposalId && eventType === "consent.completed") {
+      const [consent] = await db.select().from(schema.credspotConsents).where(eq(schema.credspotConsents.proposalId, proposalId)).orderBy(desc(schema.credspotConsents.createdAt)).limit(1);
+      if (consent) {
+        await db.update(schema.credspotConsents).set({
+          accepted: true,
+          eligible: Boolean(payload?.data?.eligible ?? true),
+          rawPayload: JSON.stringify(payload),
+          updatedAt: new Date(),
+        }).where(eq(schema.credspotConsents.id, consent.id));
+      }
+    }
+
+    if (proposalId && eventType === "margin.completed") {
+      const [margin] = await db.select().from(schema.credspotMargin).where(eq(schema.credspotMargin.proposalId, proposalId)).orderBy(desc(schema.credspotMargin.createdAt)).limit(1);
+      if (margin) {
+        await db.update(schema.credspotMargin).set({
+          balanceInquiryUuid: payload?.data?.balanceInquiryUuid ?? margin.balanceInquiryUuid,
+          availableMarginValue: payload?.data?.available_margin_value ?? margin.availableMarginValue,
+          marginBaseValue: payload?.data?.margin_base_value ?? margin.marginBaseValue,
+          totalDueBalance: payload?.data?.total_due_balance ?? margin.totalDueBalance,
+          processing: false,
+          rawPayload: JSON.stringify(payload),
+          updatedAt: new Date(),
+        }).where(eq(schema.credspotMargin.id, margin.id));
+      }
+    }
+
+    if (proposalId && eventType === "simulation.completed" && Array.isArray(payload?.data?.offers)) {
+      await db.delete(schema.credspotOffers).where(eq(schema.credspotOffers.proposalId, proposalId));
+      for (const offer of payload.data.offers) {
+        await db.insert(schema.credspotOffers).values({
+          id: generateId(),
+          proposalId,
+          offerUuid: offer.uuid ?? offer.id ?? null,
+          amount: offer.amount ?? offer.valor ?? null,
+          installmentValue: offer.installmentValue ?? offer.parcela ?? null,
+          installments: offer.installments ?? offer.parcelas ?? null,
+          cet: offer.cet ?? null,
+          tableName: offer.tableName ?? offer.tabela ?? null,
+          provider: "credspot",
+          availableInstallments: JSON.stringify(offer.availableInstallments ?? offer.parcelas_disponiveis ?? []),
+          rawPayload: JSON.stringify(offer),
+        });
+      }
+    }
+
+    if (proposalId && eventType === "contract.created") {
+      const existingOffer = await db.select().from(schema.credspotOffers).where(eq(schema.credspotOffers.proposalId, proposalId)).orderBy(desc(schema.credspotOffers.createdAt)).limit(1);
+      const [selectedOffer] = existingOffer;
+      await db.insert(schema.credspotContracts).values({
+        id: generateId(),
+        proposalId,
+        credspotOfferId: selectedOffer?.id ?? null,
+        contractUuid: payload?.data?.contractUuid ?? payload?.data?.uuid ?? null,
+        contractNumber: payload?.data?.contractNumber ?? payload?.data?.number ?? null,
+        signatureUrl: payload?.data?.signatureUrl ?? null,
+        status: payload?.data?.status ?? "waiting_signature",
+        rawPayload: JSON.stringify(payload),
+      });
+    }
+
+    if (proposalId && eventType === "contract.status_changed") {
+      const status = payload?.data?.status ?? payload?.status;
+      if (status) {
+        await db.update(schema.proposals).set({
+          statusPadronizado: status,
+          status: String(status).toUpperCase(),
+          paidAt: status === "disbursed" ? new Date() : undefined,
+          updatedAt: new Date(),
+        }).where(eq(schema.proposals.id, proposalId));
+      }
+    }
+
     return c.json({ ok: true, provider: "Go Financeira" }, 200);
   });
