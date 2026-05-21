@@ -685,6 +685,7 @@ export default function PropostaDetalhePage() {
       </div>
         );
 }
+        
 function InfoCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ background: "#111113", border: "1px solid #27272A", borderRadius: 10, padding: 20 }}>
