@@ -684,7 +684,6 @@ export default function PropostaDetalhePage() {
 
       </div>
         );
-}
         
 function InfoCard(props: any) {
   const { title, children } = props;
