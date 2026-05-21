@@ -686,7 +686,9 @@ export default function PropostaDetalhePage() {
         );
 
         
-function InfoCard({ title, children }: { title: string; children: React.ReactNode }) {
+function InfoCard(props: { title: string; children: React.ReactNode }) {
+  const { title, children } = props;
+
   return (
     <div style={{ background: "#111113", border: "1px solid #27272A", borderRadius: 10, padding: 20 }}>
       <h2 style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 600, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid #27272A", paddingBottom: 10 }}>
