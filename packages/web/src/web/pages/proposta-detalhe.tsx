@@ -684,7 +684,6 @@ export default function PropostaDetalhePage() {
 
       </div>
         );
-}
 
 function InfoCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
