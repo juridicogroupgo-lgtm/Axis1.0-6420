@@ -683,7 +683,6 @@ export default function PropostaDetalhePage() {
         ) : null}
 
       </div>
-    </Shell>
   );
 }
 
