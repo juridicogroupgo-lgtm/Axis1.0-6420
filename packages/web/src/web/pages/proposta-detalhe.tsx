@@ -680,7 +680,7 @@ export default function PropostaDetalhePage() {
               </div>
             </div>
           </div>
-        ) : null}
+        ) : null;
 
       </div>
         );
