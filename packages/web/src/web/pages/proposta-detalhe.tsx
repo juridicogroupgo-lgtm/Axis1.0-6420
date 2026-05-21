@@ -683,7 +683,6 @@ export default function PropostaDetalhePage() {
         ) : null}
 
       </div>
-  );
 }
 
 function InfoCard({ title, children }: { title: string; children: React.ReactNode }) {
