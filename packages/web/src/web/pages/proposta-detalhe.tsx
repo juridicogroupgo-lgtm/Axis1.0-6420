@@ -695,7 +695,6 @@ function InfoCard({ title, children }: { title: string; children: React.ReactNod
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{children}</div>
     </div>
   );
-}
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
