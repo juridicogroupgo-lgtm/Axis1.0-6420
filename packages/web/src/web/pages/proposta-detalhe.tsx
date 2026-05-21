@@ -692,9 +692,10 @@ function InfoCard({ title, children }: { title: string; children: React.ReactNod
       <h2 style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 600, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid #27272A", paddingBottom: 10 }}>
         {title}
       </h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{children}</div>
-    </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{children}</div>
+</div>
   );
+}
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
